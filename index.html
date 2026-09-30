@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIRCUIT SPEED CONNECT</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+body {
+background: #07090e;
+color: #f8fafc;
+min-height: 100vh;
+display: flex;
+justify-content: center;
+align-items: center;
+}
+
+.app-container {
+background: #111827;
+border: 2px solid #1f2937;
+border-radius: 20px;
+width: 100%;
+max-width: 420px;
+padding: 30px;
+box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+position: relative;
+overflow: hidden;
+}
+
+.screen { display: none; flex-direction: column; gap: 20px; align-items: center; }
+.screen.active { display: flex; }
+
+h1, h2 { color: #38bdf8; text-align: center; font-weight: 800; }
+p { color: #94a3b8; font-size: 0.9rem; text-align: center; }
+
+.input-group {
+width: 100%;
+display: flex;
+flex-direction: column;
+gap: 8px;
+}
+.input-group label { font-size: 0.8rem; font-weight: 600; color: #cbd5e1; }
+input {
+width: 100%;
+padding: 12px;
+background: #1f2937;
+border: 1px solid #374151;
+border-radius: 10px;
+color: white;
+font-size: 0.95rem;
+outline: none;
+}
+input:focus { border-color: #38bdf8; }
+
+.btn {
+width: 100%;
+padding: 14px;
+border: none;
+border-radius: 12px;
+font-weight: 700;
+font-size: 1rem;
+cursor: pointer;
+transition: all 0.2s;
+}
+.btn-primary { background: #0284c7; color: white; }
+.btn-primary:hover { background: #0369a1; }
+.btn-secondary { background: #334155; color: #f8fafc; }
+.btn-secondary:hover { background: #475569; }
+.btn-danger { background: #ef4444; color: white; }
+
+.menu-buttons {
+width: 100%;
+display: flex;
+flex-direction: column;
+gap: 12px;
+}
+
+.user-badge {
+background: #1f2937;
+padding: 10px 16px;
+border-radius: 10px;
+width: 100%;
+display: flex;
+justify-content: space-between;
+align-items: center;
+font-size: 0.85rem;
+}
+.user-badge span { color: #38bdf8; font-weight: bold; }
+
+.ranking-list {
+width: 100%;
+max-height: 200px;
+overflow-y: auto;
+display: flex;
+flex-direction: column;
+gap: 6px;
+}
+.ranking-item {
+background: #1f2937;
+padding: 10px 14px;
+border-radius: 8px;
+display: flex;
+justify-content: space-between;
+font-size: 0.9rem;
+}
+
+/* 진행률 바 스타일 */
+.progress-container {
+width: 100%;
+background: #1f2937;
+border-radius: 8px;
+height: 10px;
+overflow: hidden;
+margin-top: -5px;
+}
+.progress-bar {
+background: #22c55e;
+height: 100%;
+width: 0%;
+transition: width 0.3s ease;
+}
+
+/* 게임 플레이 화면 */
+.game-board {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 10px;
+width: 100%;
+aspect-ratio: 1;
+}
+.circuit-node {
+background: #1e293b;
+border: 2px solid #334155;
+border-radius: 12px;
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 1.5rem;
+transition: transform 0.1s;
+}
+.circuit-node.active {
+background: #22c55e;
+border-color: #4ade80;
+box-shadow: 0 0 15px rgba(34, 197, 94, 0.5);
+}
+.circuit-node.clicked {
+background: #0ea5e9;
+border-color: #38bdf8;
+box-shadow: 0 0 15px rgba(14, 165, 233, 0.5);
+}
+.circuit-node.trap {
+background: #7f1d1d;
+border-color: #f87171;
+box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+}
+.circuit-node:active { transform: scale(0.95); }
+
+.game-hud {
+width: 100%;
+display: flex;
+justify-content: space-between;
+font-weight: bold;
+font-size: 0.9rem;
+}
+</style>
+</head>
+<body>
+
+<div class="app-container">
+
+<!-- 0. 스플래시 화면 -->
+<div id="splashScreen" class="screen active" style="align-items: center; justify-content: center; padding: 40px 0;">
+<div style="font-size: 3rem; margin-bottom: 10px;">⚡</div>
+<h1>CIRCUIT SPEED</h1>
+<p style="margin-bottom: 30px;">회로 스위치 스피드 커넥트</p>
+<button class="btn btn-primary" onclick="goToAuth()">게임 시작하기</button>
+</div>
+
+<!-- 1. 로그인 화면 -->
+<div id="loginScreen" class="screen">
+<h1>🔐 로그인</h1>
+<p>계정으로 접속해 기록을 남기세요</p>
+
+<div class="input-group">
+<label>아이디</label>
+<input type="text" id="loginId" placeholder="아이디를 입력하세요">
+</div>
+<div class="input-group">
+<label>비밀번호</label>
+<input type="password" id="loginPw" placeholder="비밀번호를 입력하세요">
+</div>
+
+<button class="btn btn-primary" onclick="handleLogin()">로그인</button>
+<button class="btn btn-secondary" onclick="showScreen('signupScreen')">회원가입 하러가기</button>
+</div>
+
+<!-- 1-2. 회원가입 화면 -->
+<div id="signupScreen" class="screen">
+<h1>📝 회원가입</h1>
+<p>새로운 계정을 만드세요!</p>
+
+<div class="input-group">
+<label>사용할 아이디</label>
+<input type="text" id="signupId" placeholder="아이디">
+</div>
+<div class="input-group">
+<label>사용할 비밀번호</label>
+<input type="password" id="signupPw" placeholder="비밀번호">
+</div>
+
+<button class="btn btn-primary" onclick="handleSignup()">가입 완료</button>
+<button class="btn btn-secondary" onclick="showScreen('loginScreen')">돌아가기</button>
+</div>
+
+<!-- 2. 홈 화면 -->
+<div id="homeScreen" class="screen">
+<h1>🔌 MAIN MENU</h1>
+<div class="user-badge">
+계정: <span id="currentUserName">플레이어</span>
+<button onclick="logout()" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:0.75rem;">로그아웃</button>
+</div>
+
+<div style="display: flex; gap: 10px; width: 100%;">
+<div style="flex:1; text-align:center; padding: 10px; background: #1f2937; border-radius: 12px;">
+<div style="font-size: 0.75rem; color: #94a3b8;">최고 점수</div>
+<div id="myBestScore" style="font-size: 1.3rem; font-weight: 800; color: #38bdf8;">0점</div>
+</div>
+<div style="flex:1; text-align:center; padding: 10px; background: #1f2937; border-radius: 12px;">
+<div style="font-size: 0.75rem; color: #94a3b8;">이어서 할 레벨</div>
+<div id="myBestLevel" style="font-size: 1.3rem; font-weight: 800; color: #22c55e;">Lv.1</div>
+</div>
+</div>
+
+<div class="menu-buttons">
+<button class="btn btn-primary" onclick="startGame()">🚀 이어서 플레이 시작</button>
+<button class="btn btn-secondary" onclick="showScreen('howtoScreen')">📖 방법</button>
+<button class="btn btn-secondary" onclick="showRanking()">🏆 랭킹</button>
+</div>
+</div>
+
+<!-- 3. 게임 플레이 화면 -->
+<div id="gameScreen" class="screen">
+<div class="game-hud">
+<span>⭐ <span id="gameLevelText" style="color:#22c55e;">Lv.1</span></span>
+<span>⏱️ 남은시간: <span id="timeLeft">15</span>초</span>
+<span>✨ 점수: <span id="currentScore">0</span></span>
+</div>
+
+<!-- 레벨업 진행률 바 -->
+<div style="width: 100%; display: flex; flex-direction: column; gap: 4px;">
+<div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #94a3b8;">
+<span id="missionText">목표: 초록불 1개 연결</span>
+<span id="progressText">0 / 10</span>
+</div>
+<div class="progress-container">
+<div class="progress-bar" id="progressBar"></div>
+</div>
+</div>
+
+<div class="game-board" id="gameBoard"></div>
+<button class="btn btn-danger" onclick="endGame(true)">포기하기</button>
+</div>
+
+<!-- 4. 기기 내 랭킹 화면 -->
+<div id="rankingScreen" class="screen">
+<h1>🏆 랭킹</h1>
+<div class="ranking-list" id="rankingList"></div>
+<button class="btn btn-secondary" onclick="showScreen('homeScreen')">홈으로</button>
+</div>
+
+<!-- 5. 방법 화면 -->
+<div id="howtoScreen" class="screen">
+<h1>📖 게임 방법</h1>
+<div style="background: #1f2937; padding: 15px; border-radius: 12px; width: 100%; font-size: 0.82rem; line-height: 1.5; color: #cbd5e1;">
+1. 홈 화면에서 내 최고 레벨부터 이어서 플레이를 시작할 수 있습니다.<br>
+2. 10문제를 맞추면 레벨이 1씩 상승합니다.<br>
+3. 고레벨일수록 초록불(🟢)이 2~3개씩 켜지며 함정(❌)도 주의해야 합니다!<br>
+4. 제한시간 안에 최대한 많은 문제를 맞춰보세요.
+</div>
+<button class="btn btn-secondary" onclick="showScreen('homeScreen')">홈으로</button>
+</div>
+
+</div>
+
+<script>
+let users = JSON.parse(localStorage.getItem('circuit_users_v5')) || {};
+let currentUser = localStorage.getItem('circuit_current_user_v5') || null;
+
+function showScreen(screenId) {
+document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+document.getElementById(screenId).classList.add('active');
+}
+
+function goToAuth() {
+if (currentUser && users[currentUser]) {
+initHome();
+showScreen('homeScreen');
+} else {
+showScreen('loginScreen');
+}
+}
+
+function handleSignup() {
+const id = document.getElementById('signupId').value.trim();
+const pw = document.getElementById('signupPw').value.trim();
+if (!id || !pw) { alert('아이디와 비밀번호를 모두 입력하세요.'); return; }
+if (users[id]) { alert('이미 존재하는 아이디입니다.'); return; }
+
+users[id] = { password: pw, bestScore: 0, bestLevel: 1 };
+localStorage.setItem('circuit_users_v5', JSON.stringify(users));
+alert('회원가입 완료! 로그인해 주세요.');
+showScreen('loginScreen');
+}
+
+function handleLogin() {
+const id = document.getElementById('loginId').value.trim();
+const pw = document.getElementById('loginPw').value.trim();
+
+if (!users[id] || users[id].password !== pw) {
+alert('아이디 또는 비밀번호가 틀렸습니다.');
+return;
+}
+
+currentUser = id;
+localStorage.setItem('circuit_current_user_v5', currentUser);
+initHome();
+showScreen('homeScreen');
+}
+
+function logout() {
+currentUser = null;
+localStorage.removeItem('circuit_current_user_v5');
+showScreen('loginScreen');
+}
+
+function initHome() {
+document.getElementById('currentUserName').textContent = currentUser;
+document.getElementById('myBestScore').textContent = users[currentUser].bestScore + '점';
+document.getElementById('myBestLevel').textContent = 'Lv.' + (users[currentUser].bestLevel || 1);
+}
+
+function showRanking() {
+const listEl = document.getElementById('rankingList');
+listEl.innerHTML = '';
+
+let sortedUsers = Object.keys(users).map(id => ({
+id,
+score: users[id].bestScore,
+level: users[id].bestLevel || 1
+}));
+sortedUsers.sort((a, b) => b.score - a.score);
+
+if (sortedUsers.length === 0) {
+listEl.innerHTML = '<p style="padding:20px;">등록된 기록이 없습니다.</p>';
+} else {
+sortedUsers.forEach((u, index) => {
+const div = document.createElement('div');
+div.className = 'ranking-item';
+div.innerHTML = <span&gt;${index + 1}위. ${u.id} (Lv.${u.level})</span> <strong>${u.score}점&lt;/strong>;
+listEl.appendChild(div);
+});
+}
+showScreen('rankingScreen');
+}
+
+// --- 게임 플레이 로직 ---
+let score = 0;
+let level = 1;
+let solvedCountInLevel = 0; // 0~10
+let timeLeft = 15;
+let timer = null;
+
+let targetIndices = [];
+let clickedIndices = [];
+let trapIndices = [];
+
+function startGame() {
+showScreen('gameScreen');
+score = 0;
+// 사용자가 달성한 최고 레벨부터 이어서 시작하도록 설정
+level = users[currentUser].bestLevel || 1;
+solvedCountInLevel = 0;
+timeLeft = 15;
+
+updateGameHUD();
+buildGameBoard();
+nextWave();
+
+timer = setInterval(() => {
+timeLeft--;
+document.getElementById('timeLeft').textContent = timeLeft;
+if (timeLeft <= 0) {
+endGame(false);
+}
+}, 1000);
+}
+
+function updateGameHUD() {
+document.getElementById('currentScore').textContent = score;
+document.getElementById('gameLevelText').textContent = 'Lv.' + level;
+document.getElementById('timeLeft').textContent = timeLeft;
+
+let requiredCount = level >= 8 ? 3 : (level >= 4 ? 2 : 1);
+document.getElementById('missionText').textContent = 목표: 초록불 ${requiredCount}개 연결`;
+
+let percent = (solvedCountInLevel / 10) * 100;
+document.getElementById('progressBar').style.width = percent + '%';
+document.getElementById('progressText').textContent = ``${solvedCountInLevel} / 10`;
+}
+
+function buildGameBoard() {
+const board = document.getElementById('gameBoard');
+board.innerHTML = '';
+for (let i = 0; i < 9; i++) {
+const node = document.createElement('div');
+node.className = 'circuit-node';
+node.id = node-${i}`;
+node.onclick = () => clickNode(i);
+board.appendChild(node);
+}
+}
+
+function nextWave() {
+for (let i = 0; i < 9; i++) {
+const el = document.getElementById(node-${i}`);
+el.className = 'circuit-node';
+el.textContent = '';
+}
+
+targetIndices = [];
+clickedIndices = [];
+trapIndices = [];
+
+let greenCount = level >= 8 ? 3 : (level >= 4 ? 2 : 1);
+while (targetIndices.length < greenCount) {
+let idx = Math.floor(Math.random() * 9);
+if (!targetIndices.includes(idx)) targetIndices.push(idx);
+}
+
+if (level >= 3) {
+let trapCount = level >= 6 ? 2 : 1;
+while (trapIndices.length < trapCount) {
+let idx = Math.floor(Math.random() * 9);
+if (!targetIndices.includes(idx) && !trapIndices.includes(idx)) {
+trapIndices.push(idx);
+}
+}
+}
+
+targetIndices.forEach(idx => {
+const el = document.getElementById(node-${idx}`);
+el.classList.add('active');
+el.textContent = '🟢';
+});
+
+trapIndices.forEach(idx => {
+const el = document.getElementById(node-${idx}`);
+el.classList.add('trap');
+el.textContent = '❌';
+});
+}
+
+function clickNode(idx) {
+if (timeLeft <= 0) return;
+if (clickedIndices.includes(idx)) return;
+
+if (targetIndices.includes(idx)) {
+clickedIndices.push(idx);
+const el = document.getElementById(node-${idx}`);
+el.classList.remove('active');
+el.classList.add('clicked');
+el.textContent = '🔌';
+
+if (clickedIndices.length === targetIndices.length) {
+score += 10 * targetIndices.length;
+solvedCountInLevel++;
+
+if (solvedCountInLevel >= 10) {
+level++;
+solvedCountInLevel = 0;
+timeLeft += 3;
+alert(🎉 LEVEL UP! Lv.${level}로 진입합니다!`);
+}
+
+// 최고 레벨 즉시 갱신 저장
+if (level > (users[currentUser].bestLevel || 1)) {
+users[currentUser].bestLevel = level;
+}
+if (score > users[currentUser].bestScore) {
+users[currentUser].bestScore = score;
+}
+localStorage.setItem('circuit_users_v5', JSON.stringify(users));
+
+updateGameHUD();
+setTimeout(nextWave, 150);
+}
+} else if (trapIndices.includes(idx)) {
+score = Math.max(0, score - 10);
+timeLeft = Math.max(1, timeLeft - 2);
+updateGameHUD();
+alert('⚠️ 함정! 시간이 깎였습니다!');
+nextWave();
+} else {
+score = Math.max(0, score - 5);
+updateGameHUD();
+}
+}
+
+function endGame(isForfeit) {
+clearInterval(timer);
+
+if (!isForfeit) {
+let user = users[currentUser];
+let isNewRecord = false;
+
+if (score > user.bestScore) {
+user.bestScore = score;
+isNewRecord = true;
+}
+if (level > (user.bestLevel || 1)) {
+user.bestLevel = level;
+isNewRecord = true;
+}
+
+if (isNewRecord) {
+localStorage.setItem('circuit_users_v5', JSON.stringify(users));
+alert(🏆 기록 갱신!\n최종 점수: ${score}점 (도달 Lv.${level}));
+} else {
+alert(게임 종료!\n최종 점수: ${score}점 (도달 Lv.${level}));
+}
+}
+initHome();
+showScreen('homeScreen');
+}
+</script>
+</body>
+</html>
